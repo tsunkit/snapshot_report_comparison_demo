@@ -14,14 +14,14 @@ FROM
 			{table1_aggregate_columns1_clause},
 			{table1_aggregate_columns2_clause}
 		from regulatory_report table1
-		WHERE {snapshot_column} = ?
+		WHERE {snapshot_column} = :snapshot_1
 		union all
 		SELECT {group_by_select_clause},
 			{table2_total_clause},
 			{table2_aggregate_columns1_clause},
 			{table2_aggregate_columns2_clause}
 		from regulatory_report table2
-		WHERE {snapshot_column} = ?
+		WHERE {snapshot_column} = :snapshot_2
 	 )
 	 GROUP BY  {group_by_select_clause}
 ) main

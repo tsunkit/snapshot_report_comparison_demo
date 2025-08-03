@@ -8,13 +8,13 @@ FROM
 		SELECT 
 			1 AS TABLE_NO,{snapshot_column},{UNIQUE_REFERENCE_ID},{check_details_domain_columns},{check_details_value_columns}
 		FROM REGULATORY_REPORT
-		WHERE {snapshot_column} = ?
+		WHERE {snapshot_column} = :snapshot_1
 		AND ( {check_details_where_clause} )
 		UNION ALL
 		SELECT 
 			2 AS TABLE_NO,{snapshot_column},{UNIQUE_REFERENCE_ID},{check_details_domain_columns},{check_details_value_columns}
 		FROM REGULATORY_REPORT
-		WHERE {snapshot_column} = ?
+		WHERE {snapshot_column} = :snapshot_2
 		AND ( {check_details_where_clause} )
 	)
 	ORDER BY {UNIQUE_REFERENCE_ID}, TABLE_NO
