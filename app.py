@@ -85,16 +85,16 @@ def get_dynamic_compare_results_sql(selected_group_by_cols, selected_aggregate_c
         main_aggregate_diff_clause = ', '.join([f"{col}_1, {col}_2, {col}_1 - {col}_2 AS {col}_DIFF" for col in selected_aggregate_cols])
         
         
-        print(table1_aggregate_columns1_clause)
-        print(table1_aggregate_columns2_clause)
-        print(table2_aggregate_columns1_clause)
-        print(table2_aggregate_columns2_clause)
+        print("table1_aggregate_columns1_clause\n", table1_aggregate_columns1_clause)
+        print("table1_aggregate_columns2_clause\n", table1_aggregate_columns2_clause)
+        print("table2_aggregate_columns1_clause\n", table2_aggregate_columns1_clause)
+        print("table2_aggregate_columns2_clause\n", table2_aggregate_columns2_clause)
         
-        print(group_by_total_clause)
-        print(group_by_aggregate_columns_clause)
+        print("group_by_total_clause\n", group_by_total_clause)
+        print("group_by_aggregate_columns_clause\n", group_by_aggregate_columns_clause)
         
-        print(main_total_diff_clause)
-        print(main_aggregate_diff_clause)
+        print("main_total_diff_clause\n", main_total_diff_clause)
+        print("main_aggregate_diff_clause\n", main_aggregate_diff_clause)
         
         compare_sql_template=app_sql_templates["compare_results_query.sql"]
         return compare_sql_template.format(
@@ -118,6 +118,9 @@ def get_dynamic_check_details_sql(selectedrows, check_details_where_clause):
             check_details_value_columns_diff=', '.join([f"{col}, \n {col} - (CASE WHEN TABLE_NO =1 THEN LEAD_{col} ELSE LAG_{col} END) AS {col}_DIFF \n  " for col in scfg_check_details_value_columns])
             
             check_details_sql_template=app_sql_templates["check_details_query.sql"]
+            
+            print("check_details_value_columns_lead_lag\n", check_details_value_columns_lead_lag)
+            print("check_details_value_columns_diff\n", check_details_value_columns_diff)
             
             return check_details_sql_template.format(
                 snapshot_column=scfg_column,
@@ -162,18 +165,24 @@ def home():
         selected_group_by_cols = request.form['selectedGroupByColumns'].split(", ") if request.form['selectedGroupByColumns'] else []
         selected_aggregate_cols = request.form['selectedAggregateColumns'].split(", ") if request.form['selectedGroupByColumns'] else []
         
-        print("selected_group_by_cols", selected_group_by_cols);
-        print("selected_aggregate_cols", selected_aggregate_cols);
+        print("selected_group_by_cols\n", selected_group_by_cols);
+        print("selected_aggregate_cols\n", selected_aggregate_cols);
 
         #Based on the submitted form data are ready, generate dynamic comparison query for 1st level comparison results table
         compare_sql_filled = get_dynamic_compare_results_sql(selected_group_by_cols, selected_aggregate_cols)
  
         print(compare_sql_filled)
+        #with engine.connect() as conn:
+        #    compare_df = pd.read_sql(compare_sql_filled, conn, params=(selected_snapshot_1, selected_snapshot_2) )
+        
         with engine.connect() as conn:
-            compare_df = pd.read_sql(compare_sql_filled, conn, params=(selected_snapshot_1, selected_snapshot_2) )
+                compare_result = conn.execute(text(app_sql_templates["compare_sql_filled.sql"]) , params=(selected_snapshot_1, selected_snapshot_2)  )
+                compare_data = compare_result.fetchall()
+                compare_df = pd.DataFrame(compare_data, columns=columns)
+
 
         selectedrows = request.form.getlist("selectedrows")
-        print("selectedrows", selectedrows)
+        print("selectedrows\n", selectedrows)
         if len(selectedrows) > 0:
             #Based on the selected rows from 1st level comparison tables, generate filtered conditions in where clause
             for index, selectedrow in enumerate(selectedrows) :
@@ -185,17 +194,21 @@ def home():
                 else:
                     check_details_where_clause = check_details_where_clause + '\n OR  (' + ' AND '.join(f"{k}='{v}'" for k, v in zip(selected_group_by_cols, row_columns)) + ' ) '
          
-            print("check_details_where_clause", check_details_where_clause) 
+            print("check_details_where_clause\n", check_details_where_clause) 
             
             
             #Based on the selected rows from 1st level comparison tables, generate dynamic view details query for 2nd level results table
             check_details_sql_filled = get_dynamic_check_details_sql(selectedrows, check_details_where_clause)
             
-            print(check_details_sql_filled)
+            print("check_details_sql_filled\n", check_details_sql_filled)
+            #with engine.connect() as conn:
+            #    checkdetails_df = pd.read_sql(check_details_sql_filled, conn, params=(selected_snapshot_1, selected_snapshot_2) )         
             with engine.connect() as conn:
-                checkdetails_df = pd.read_sql(check_details_sql_filled, conn, params=(selected_snapshot_1, selected_snapshot_2) )         
+                check_detail_result = conn.execute(text(app_sql_templates["check_details_sql_filled.sql"]) , params=(selected_snapshot_1, selected_snapshot_2)  )
+                check_detail_data = check_detail_result.fetchall()
+                checkdetails_df = pd.DataFrame(check_detail_data, columns=columns)
    
-
+  
     return render_template('form.html', 
                     snapshot_options=snapshot_options,
                     groupby_columns_options=groupby_columns_options,
