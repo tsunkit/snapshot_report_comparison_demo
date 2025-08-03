@@ -26,6 +26,9 @@ from config_loader import ConfigLoader
 from SQLRepository import SQLRepository
 from data_factory import DataFactory
 
+from werkzeug.exceptions import BadRequest
+from sqlalchemy.exc import SQLAlchemyError
+
 #Constants
 CONFIG_FILE="config.ini"  
 SQL_FOLDER="sql"
@@ -160,56 +163,69 @@ def home():
     check_details_where_clause = None
      
     if request.method == 'POST':
-        selected_snapshot_1 = request.form['snapshop_1_selection']
-        selected_snapshot_2 = request.form['snapshop_2_selection']
-        selected_group_by_cols = request.form['selectedGroupByColumns'].split(", ") if request.form['selectedGroupByColumns'] else []
-        selected_aggregate_cols = request.form['selectedAggregateColumns'].split(", ") if request.form['selectedGroupByColumns'] else []
-        
-        print("selected_group_by_cols\n", selected_group_by_cols);
-        print("selected_aggregate_cols\n", selected_aggregate_cols);
-
-        #Based on the submitted form data are ready, generate dynamic comparison query for 1st level comparison results table
-        compare_sql_filled = get_dynamic_compare_results_sql(selected_group_by_cols, selected_aggregate_cols)
- 
-        print("compare_sql_filled\n", compare_sql_filled)
-        #with engine.connect() as conn:
-        #    compare_df = pd.read_sql(compare_sql_filled, conn, params=(selected_snapshot_1, selected_snapshot_2) )
-        
-        with engine.connect() as conn:
-                compare_result = conn.execute(text(compare_sql_filled) , {"snapshot_1": selected_snapshot_1, "snapshot_2": selected_snapshot_2} )
-                columns = compare_result.keys()
-                compare_data = compare_result.fetchall()
-                compare_df = pd.DataFrame(compare_data, columns=columns)
-
-
-        selectedrows = request.form.getlist("selectedrows")
-        print("selectedrows\n", selectedrows)
-        if len(selectedrows) > 0:
-            #Based on the selected rows from 1st level comparison tables, generate filtered conditions in where clause
-            for index, selectedrow in enumerate(selectedrows) :
-                row_columns = selectedrow.split(",")
-                row_columns = row_columns[0:len(selected_group_by_cols)]
-                
-                if index == 0:
-                    check_details_where_clause = '(' + ' AND '.join(f"{k}='{v}'" for k, v in zip(selected_group_by_cols, row_columns))  + ')'
-                else:
-                    check_details_where_clause = check_details_where_clause + '\n OR  (' + ' AND '.join(f"{k}='{v}'" for k, v in zip(selected_group_by_cols, row_columns)) + ' ) '
-         
-            print("check_details_where_clause\n", check_details_where_clause) 
+        try:
+            selected_snapshot_1 = request.form.get('snapshop_1_selection')
+            selected_snapshot_2 = request.form.get('snapshop_2_selection')
+            selected_group_by_cols = request.form.get('selectedGroupByColumns').split(", ") if request.form.get('selectedGroupByColumns') else []
+            selected_aggregate_cols = request.form.get('selectedAggregateColumns').split(", ") if request.form.get('selectedGroupByColumns') else []
             
-            
-            #Based on the selected rows from 1st level comparison tables, generate dynamic view details query for 2nd level results table
-            check_details_sql_filled = get_dynamic_check_details_sql(selectedrows, check_details_where_clause)
-            
-            print("check_details_sql_filled\n", check_details_sql_filled)
+            print("selected_group_by_cols\n", selected_group_by_cols);
+            print("selected_aggregate_cols\n", selected_aggregate_cols);
+
+            #Based on the submitted form data, generate dynamic comparison query for 1st level comparison results table
+            compare_sql_filled = get_dynamic_compare_results_sql(selected_group_by_cols, selected_aggregate_cols)
+     
+            print("compare_sql_filled\n", compare_sql_filled)
             #with engine.connect() as conn:
-            #    checkdetails_df = pd.read_sql(check_details_sql_filled, conn, params=(selected_snapshot_1, selected_snapshot_2) )         
+            #    compare_df = pd.read_sql(compare_sql_filled, conn, params=(selected_snapshot_1, selected_snapshot_2) )
+            
             with engine.connect() as conn:
-                check_detail_result = conn.execute(text(check_details_sql_filled) , {"snapshot_1": selected_snapshot_1, "snapshot_2": selected_snapshot_2} )
-                columns = check_detail_result.keys()
-                check_detail_data = check_detail_result.fetchall()
-                checkdetails_df = pd.DataFrame(check_detail_data, columns=columns)
-   
+                    compare_result = conn.execute(text(compare_sql_filled) , {"snapshot_1": selected_snapshot_1, "snapshot_2": selected_snapshot_2} )
+                    columns = compare_result.keys()
+                    compare_data = compare_result.fetchall()
+                    compare_df = pd.DataFrame(compare_data, columns=columns)
+
+
+            selectedrows = request.form.getlist("selectedrows")
+            print("selectedrows\n", selectedrows)
+            if len(selectedrows) > 0:
+                #Based on the selected rows from 1st level comparison tables, generate filtered conditions in where clause
+                for index, selectedrow in enumerate(selectedrows) :
+                    row_columns = selectedrow.split(",")
+                    row_columns = row_columns[0:len(selected_group_by_cols)]
+                    
+                    if index == 0:
+                        check_details_where_clause = '(' + ' AND '.join(f"{k}='{v}'" for k, v in zip(selected_group_by_cols, row_columns))  + ')'
+                    else:
+                        check_details_where_clause = check_details_where_clause + '\n OR  (' + ' AND '.join(f"{k}='{v}'" for k, v in zip(selected_group_by_cols, row_columns)) + ' ) '
+             
+                print("check_details_where_clause\n", check_details_where_clause) 
+                
+                
+                #Based on the selected rows from 1st level comparison tables, generate dynamic view details query for 2nd level results table
+                check_details_sql_filled = get_dynamic_check_details_sql(selectedrows, check_details_where_clause)
+                
+                print("check_details_sql_filled\n", check_details_sql_filled)
+                #with engine.connect() as conn:
+                #    checkdetails_df = pd.read_sql(check_details_sql_filled, conn, params=(selected_snapshot_1, selected_snapshot_2) )         
+                
+                with engine.connect() as conn:
+                    check_detail_result = conn.execute(text(check_details_sql_filled) , {"snapshot_1": selected_snapshot_1, "snapshot_2": selected_snapshot_2} )
+                    columns = check_detail_result.keys()
+                    check_detail_data = check_detail_result.fetchall()
+                    checkdetails_df = pd.DataFrame(check_detail_data, columns=columns)
+
+        except SQLAlchemyError as e:
+            # Handle specific SQLAlchemy errors
+            print(f"Database error occurred: {e}")
+            return render_template( 'error.html', error_message="A database error occurred. Please check your query or data.")
+        except (BadRequest, ValueError) as e:
+            print(f"Form submission error: {e}")
+            return render_template('error.html', error_message=f"Invalid form submission: {e}")
+        except Exception as e:
+            # Handle any other unexpected errors
+            print(f"An unexpected error occurred: {e}")
+            return render_template('error.html',error_message="An unexpected error occurred. Please try again later." )
   
     return render_template('form.html', 
                     snapshot_options=snapshot_options,
@@ -225,6 +241,6 @@ def home():
                     checkdetails_sql=check_details_sql_filled,
                     checkdetails_result=checkdetails_df)
 
-#4. Run the Flask in dev, comment out in prod
+#4. Run the Flask in local, use gunicorn --bind 0.0.0.0:$PORT app:app in host website
 if __name__ == '__main__':
     app.run(debug=True)
