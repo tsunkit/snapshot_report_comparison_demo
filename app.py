@@ -41,7 +41,7 @@ def initialize_app_context():
     global scfg_check_details_domain_columns, scfg_check_details_value_columns
     global groupby_columns_options, aggregate_columns_options
 
-    #1. Load all config and validate, populate into variables
+    #1. Load all config and validate, populate into global variables
     config_loader = ConfigLoader(CONFIG_FILE)
     
     #2. Load all SQL queries, put them into collections
@@ -75,17 +75,22 @@ def get_dynamic_compare_results_sql(selected_group_by_cols, selected_aggregate_c
         table1_total_clause = '1 as total_1, 0 as total_2'
         table2_total_clause = '0 as total_1, 1 as total_2'
         
+        #Dynamically populate selected group by columns in main and sub query select clause
         table1_aggregate_columns1_clause =  ', '.join([f"{col} AS {col}_1" for col in selected_aggregate_cols])
         table1_aggregate_columns2_clause =  ', '.join([f"0 AS {col}_2" for col in selected_aggregate_cols])
         
         table2_aggregate_columns1_clause =  ', '.join([f"0 AS {col}_1" for col in selected_aggregate_cols])
         table2_aggregate_columns2_clause =  ', '.join([f"{col} AS {col}_2" for col in selected_aggregate_cols])
         
+        #Automatically supply total rows comparison
         group_by_total_clause = 'SUM(TOTAL_1) AS TOTAL_1, SUM(TOTAL_1) AS TOTAL_2'
+        #Dynamically calculate difference of sum of aggregated metics based on the selected snapshots
         group_by_aggregate_columns_clause = ', '.join([f"SUM({col}_1) AS {col}_1, SUM({col}_2) AS {col}_2" for col in selected_aggregate_cols])
         
+        #automatically supply total rows comparison
         main_total_diff_clause = 'TOTAL_1, TOTAL_2, TOTAL_1 - TOTAL_2 AS TOTAL_DIFF'
-        main_aggregate_diff_clause = ', '.join([f"{col}_1, {col}_2, {col}_1 - {col}_2 AS {col}_DIFF" for col in selected_aggregate_cols])
+        #automatically calculate difference of sum of aggreated metics based on the selected snapshots
+        main_aggregate_diff_clause = ', '.join([f"{col}_1, {col}_2, ROUND( {col}_1 - {col}_2 , 2) AS {col}_DIFF" for col in selected_aggregate_cols])
         
         
         print("table1_aggregate_columns1_clause\n", table1_aggregate_columns1_clause)
