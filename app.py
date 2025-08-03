@@ -208,6 +208,6 @@ def home():
                     checkdetails_sql=check_details_sql_filled,
                     checkdetails_result=checkdetails_df)
 
-#4. Run the Flask
-if __name__ == '__main__':
-    app.run(debug=True)
+#4. Run the Flask in dev, comment out in prod
+#if __name__ == '__main__':
+ #   app.run(debug=True)
