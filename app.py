@@ -176,7 +176,7 @@ def home():
         #    compare_df = pd.read_sql(compare_sql_filled, conn, params=(selected_snapshot_1, selected_snapshot_2) )
         
         with engine.connect() as conn:
-                compare_result = conn.execute(text(compare_sql_filled) , params=(selected_snapshot_1, selected_snapshot_2)  )
+                compare_result = conn.execute(text(compare_sql_filled) , params={"snapshot_1": selected_snapshot_1, "snapshot_2": selected_snapshot_2} )
                 compare_data = compare_result.fetchall()
                 compare_df = pd.DataFrame(compare_data, columns=columns)
 
@@ -204,7 +204,7 @@ def home():
             #with engine.connect() as conn:
             #    checkdetails_df = pd.read_sql(check_details_sql_filled, conn, params=(selected_snapshot_1, selected_snapshot_2) )         
             with engine.connect() as conn:
-                check_detail_result = conn.execute(text(check_details_sql_filled) , params=(selected_snapshot_1, selected_snapshot_2)  )
+                check_detail_result = conn.execute(text(check_details_sql_filled) , params={"snapshot_1": selected_snapshot_1, "snapshot_2": selected_snapshot_2} )
                 check_detail_data = check_detail_result.fetchall()
                 checkdetails_df = pd.DataFrame(check_detail_data, columns=columns)
    
