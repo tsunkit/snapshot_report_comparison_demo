@@ -36,7 +36,20 @@ class DataFileSource(DataSourceBase):
         metadata.create_all(self.engine)
         
         #inserting csv files into sqlalchemy table
-        df.to_sql(self.engine_name, self.engine, if_exists='replace', index=False)
+        #df.to_sql(self.engine_name, self.engine, if_exists='replace', index=False)
         
+        # Insert data using SQLAlchemy instead of pandas to_sql
+        with self.engine.connect() as connection:
+            # Drop the table if it exists to ensure a clean slate
+            table.drop(self.engine, checkfirst=True)
+            # Recreate the table
+            metadata.create_all(self.engine)
+
+            # Insert data row by row
+            for _, row in df.iterrows():
+                insert_stmt = insert(table).values(**row.to_dict())
+                connection.execute(insert_stmt)
+            connection.commit()
+            
     def get_engine(self):
         return self.engine
