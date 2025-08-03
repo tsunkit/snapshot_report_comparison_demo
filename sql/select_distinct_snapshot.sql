@@ -1,0 +1,1 @@
+SELECT DISTINCT report_date FROM regulatory_report ORDER BY report_date DESC
