@@ -1,7 +1,7 @@
 import os
 import pandas as pd
 from sqlalchemy import create_engine, MetaData, Table, Column
-from sqlalchemy import Integer, Float, String, text
+from sqlalchemy import Integer, Float, String, text, insert
 from config_loader import ConfigLoader
 from data_source_base import DataSourceBase
 
