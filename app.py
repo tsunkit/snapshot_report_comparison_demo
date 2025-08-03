@@ -171,12 +171,12 @@ def home():
         #Based on the submitted form data are ready, generate dynamic comparison query for 1st level comparison results table
         compare_sql_filled = get_dynamic_compare_results_sql(selected_group_by_cols, selected_aggregate_cols)
  
-        print(compare_sql_filled)
+        print("compare_sql_filled\n", compare_sql_filled)
         #with engine.connect() as conn:
         #    compare_df = pd.read_sql(compare_sql_filled, conn, params=(selected_snapshot_1, selected_snapshot_2) )
         
         with engine.connect() as conn:
-                compare_result = conn.execute(text(app_sql_templates["compare_sql_filled.sql"]) , params=(selected_snapshot_1, selected_snapshot_2)  )
+                compare_result = conn.execute(text(compare_sql_filled) , params=(selected_snapshot_1, selected_snapshot_2)  )
                 compare_data = compare_result.fetchall()
                 compare_df = pd.DataFrame(compare_data, columns=columns)
 
@@ -204,7 +204,7 @@ def home():
             #with engine.connect() as conn:
             #    checkdetails_df = pd.read_sql(check_details_sql_filled, conn, params=(selected_snapshot_1, selected_snapshot_2) )         
             with engine.connect() as conn:
-                check_detail_result = conn.execute(text(app_sql_templates["check_details_sql_filled.sql"]) , params=(selected_snapshot_1, selected_snapshot_2)  )
+                check_detail_result = conn.execute(text(check_details_sql_filled) , params=(selected_snapshot_1, selected_snapshot_2)  )
                 check_detail_data = check_detail_result.fetchall()
                 checkdetails_df = pd.DataFrame(check_detail_data, columns=columns)
    
