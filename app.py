@@ -169,7 +169,8 @@ def home():
         compare_sql_filled = get_dynamic_compare_results_sql(selected_group_by_cols, selected_aggregate_cols)
  
         print(compare_sql_filled)
-        compare_df = pd.read_sql(compare_sql_filled, engine, params=(selected_snapshot_1, selected_snapshot_2) )
+        with engine.connect() as conn:
+            compare_df = pd.read_sql(compare_sql_filled, conn, params=(selected_snapshot_1, selected_snapshot_2) )
 
         selectedrows = request.form.getlist("selectedrows")
         print("selectedrows", selectedrows)
@@ -191,7 +192,8 @@ def home():
             check_details_sql_filled = get_dynamic_check_details_sql(selectedrows, check_details_where_clause)
             
             print(check_details_sql_filled)
-            checkdetails_df = pd.read_sql(check_details_sql_filled, engine, params=(selected_snapshot_1, selected_snapshot_2) )         
+            with engine.connect() as conn:
+                checkdetails_df = pd.read_sql(check_details_sql_filled, conn, params=(selected_snapshot_1, selected_snapshot_2) )         
    
 
     return render_template('form.html', 
