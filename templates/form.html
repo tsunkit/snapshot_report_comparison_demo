@@ -1,0 +1,542 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Snapshot-to-Snapshot Results Comparison</title>
+  <style>
+	:root {
+		--snapshot1-background-color: #EBF9F5;
+		--snapshot2-background-color: #F5F9EB;
+		--highlight-diff-font-color: red;
+		--selected-row-color: #ffcc00;
+	}
+	 .snapshot1_color {
+      background-color: var(--snapshot1-background-color);
+    }
+	.snapshot2_color {
+      background-color: var(--snapshot2-background-color);
+    }
+    .selected-row {
+      background-color: var(--selected-row-color);
+    }	
+    .hidden {
+      display: none;
+    }
+	 /* --- Global --- */
+    body {
+      font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+      background-color: #f4f6f8;
+      color: #333;
+      margin: 20px;
+    }
+
+    h1, h2 {
+      color: #1d4e89;
+    }
+
+    /* --- Table Styling --- */
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      background-color: #ffffff;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+      border-radius: 6px;
+      overflow: hidden;
+    }
+
+    thead {
+      background-color: #1d4e89;
+      color: white;
+    }
+
+    th, td {
+      padding: 12px 16px;
+      border-bottom: 1px solid #e0e0e0;
+      text-align: left;
+    }
+
+    tbody tr:nth-child(even) {
+      background-color: #f0f4f8;
+    }
+
+    tbody tr:hover {
+      background-color: #dbe9f6;
+    }
+
+    .highlight-col {
+      background-color: #cce5ff !important;
+    }
+
+    /* --- Form Styling --- */
+    form {
+      background-color: #ffffff;
+      padding: 20px;
+      margin-top: 30px;
+      border-radius: 6px;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+      max-width: 100%;
+    }
+
+    label {
+      margin-bottom: 6px;
+      font-weight: 600;
+      color: #1d4e89;
+    }
+
+    input[type="text"],
+    input[type="email"],
+    input[type="number"],
+    select,
+    textarea {
+      width: 99%;
+      padding: 10px;
+      margin-bottom: 16px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      transition: border-color 0.2s ease;
+    }
+
+    input:focus,
+    select:focus,
+    textarea:focus {
+      border-color: #1d4e89;
+      outline: none;
+    }
+
+    button {
+      background-color: #1d4e89;
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-weight: 600;
+      transition: background-color 0.3s ease;
+    }
+	
+	.btn-submit {
+      background-color: #1d4e89;
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-weight: 600;
+      transition: background-color 0.3s ease;
+    }
+
+    button:hover {
+      background-color: #163c6b;
+    }
+	
+	 /* Prevent wrapping in table cells */
+    table.dataTable td, 
+    table.dataTable th {
+      white-space: nowrap;
+    }
+	
+	.snapshot1_color {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 15px;
+	  background-color: var(--snapshot1-background-color);
+    }
+	.snapshot2_color {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 15px;
+	  background-color: var(--snapshot2-background-color);
+    }
+    label {
+      font-weight: 600;
+      min-width: 120px;
+    }
+
+    select {
+      padding: 6px 12px;
+      font-size: 14px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      max-width: 300px;
+	  margin-bottom: 6px;
+    }
+
+  </style>	
+    <link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/jquery.dataTables.min.css">
+    <link rel="stylesheet" href="https://cdn.datatables.net/select/1.7.0/css/select.dataTables.min.css">
+
+    <script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
+    <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+    <script src="https://cdn.datatables.net/select/1.7.0/js/dataTables.select.min.js"></script>
+	<script>
+        function validateSnapshotOptions() {
+
+            const snapshop_1 = document.getElementById("snapshop_1_selection").value;            
+			const snapshop_2 = document.getElementById("snapshop_2_selection").value;			
+			const selectedGroupByColumns_value = document.getElementById("selectedGroupByColumns").value;			
+			const selectedAggregateColumns_value = document.getElementById("selectedAggregateColumns").value;
+			
+			
+            if (snapshop_1 === snapshop_2) {
+                alert("Please select two different snapshot options.");
+                return false;
+            }
+			if (selectedGroupByColumns_value == "") {
+                alert("Please select at least 1 Group By column")
+                return false;
+            }
+			if (selectedAggregateColumns_value == "") {
+                alert("Please select at least 1 Aggregate column")
+                return false;
+            }
+            return true;
+
+        }
+		
+	 let groupby_selected = [];
+	 let aggregate_selected = [];
+
+	  function updateGroupBySelected(checkbox) {
+		groupby_selected=document.getElementById("selectedGroupByColumns").value ? document.getElementById("selectedGroupByColumns").value.split(", ") : [];
+		const value = checkbox.value;
+		if (checkbox.checked) {
+		  // Add if not already in list
+		  if (!groupby_selected.includes(value)) {
+			groupby_selected.push(value);
+		  }
+		} else {
+		  // Remove if unchecked
+		  groupby_selected = groupby_selected.filter(col => col !== value);
+		}
+		document.getElementById("selectedGroupByColumns").value = groupby_selected.join(", ");
+	
+	  }	
+
+	function updateAggregateSelected(checkbox) {
+		aggregate_selected=document.getElementById("selectedAggregateColumns").value ? document.getElementById("selectedAggregateColumns").value.split(", ") : [];
+		
+		const value = checkbox.value;
+		if (checkbox.checked) {
+		  // Add if not already in list
+		  if (!aggregate_selected.includes(value)) {
+			aggregate_selected.push(value);
+		  }
+		} else {
+		  // Remove if unchecked
+		  aggregate_selected = aggregate_selected.filter(col => col !== value);
+		}
+		document.getElementById("selectedAggregateColumns").value = aggregate_selected.join(", ");
+	
+	  }	
+
+
+		function openAboutModal() {
+			document.getElementById("aboutModal").style.display = "block";
+		}
+		function closeAboutModal() {
+			document.getElementById("aboutModal").style.display = "none";
+		}
+	
+
+	  
+    </script>
+</head>
+<body>
+	<div id="aboutModal" style="display: none; position: fixed; z-index: 999; padding: 20px; top: 10%; left: 50%; transform: translateX(-50%); width: 60%; background-color: white; border: 1px solid #ccc; box-shadow: 0 4px 8px rgba(0,0,0,0.2);">
+		<h3>About This Application</h3>
+		<p>This tool compares two snapshots of business report data.</p>
+		<ul>
+			<li>Supports CSV or database data sources</li>
+			<li>Shows aggregated differences by business dimensions</li>
+			<li>Allows drill-down into detailed records causing variances</li>
+			<li>Fully configurable — choose groupings and metrics dynamically</li>
+			
+		</ul>
+		<p><strong>Note:</strong> This application is for internal demo or utility purposes only.</p>
+		<p><a href="https://www.w3schools.com/" target="_blank">Click this link for source codes in GIT</a></p>
+		<p><a href="regulatory_report.csv" download >Download the CSV for the reports</a></p>
+		<br/>
+		<button onclick="closeAboutModal()" style="margin-top: 10px;">Close</button>
+	</div>	
+	<a href="#" onclick="openAboutModal()" style="float: right; margin-right: 20px;">About</a>
+	
+    <h2 id="TopTitle">Snapshot-to-Snapshot Results Comparison</h2>
+    <form id="basic_form" method="post" onsubmit="return validateSnapshotOptions();">
+		<div class="snapshot1_color">
+			<label  for="snapshop_1">Select Snapshot 1: </label>
+			<select id="snapshop_1_selection" name="snapshop_1_selection" required >
+				{% for snapshot_option in snapshot_options %}
+					<option value="{{ snapshot_option }}" {% if snapshot_option == selected_snapshot_1 %}selected{% endif %}>{{ snapshot_option }}</option>
+				{% endfor %}
+			</select>
+		</div>
+		<div class="snapshot2_color">
+			<label  for="snapshop_2">Select Snapshot 2: </label>
+			<select id="snapshop_2_selection" name="snapshop_2_selection" required >
+				{% for snapshot_option in snapshot_options %}
+					<option value="{{ snapshot_option }}" {% if snapshot_option == selected_snapshot_2 %}selected{% endif %}>{{ snapshot_option }}</option>
+				{% endfor %}
+			</select>
+		</div>
+        <br/>
+		<label>Select Group By Columns (For Aggregation): </label>
+		<input type="text" id="selectedGroupByColumns" name="selectedGroupByColumns" readonly size="90%"  value= "{{ ", ".join(selected_group_by_cols) }}" required / >
+		<div class="checkbox-list">
+			{% for groupby_columns_option in groupby_columns_options %}
+				<label><input id="groupby_columns" name="groupby_columns" type="checkbox"  value="{{ groupby_columns_option }}" {% if groupby_columns_option in selected_group_by_cols %} checked {% endif %} onchange="updateGroupBySelected(this)"  />{{ groupby_columns_option }}</label>
+			{% endfor %}	
+		</div>
+		<br/>	
+		<label>Select Aggregate Columns (For Metrics): </label>
+		<input type="text" id="selectedAggregateColumns" name="selectedAggregateColumns" readonly size="90%" value= "{{ ", ".join(selected_aggregate_cols) }}" required  / >
+		<div class="checkbox-list">
+			{% for aggregate_columns_option in aggregate_columns_options %}
+				<label><input id="aggregate_columns" name="aggregate_columns" type="checkbox"  value="{{ aggregate_columns_option }}" {% if aggregate_columns_option in selected_aggregate_cols %} checked {% endif %} onchange="updateAggregateSelected(this)"  />{{ aggregate_columns_option }}</label>
+			{% endfor %}	
+		</div>
+
+		
+		<br/>
+        <input type="submit" class ="btn-submit" value="Run Comparison" />
+    </form>
+	<br/>
+	<br/>
+    {% if comparison_result is not none %}
+		{% if checkdetails_result is not none %}
+		<a href="#DetailResults" style="float: right;">Go to Detail Results Section</a>
+		{% endif %}
+		<h2 id="ComparisonResults">Comparison Results</h2>
+		<i>Select one or more rows, then click 'View Details' to drill down into the underlying data.</i>        
+		<br/>
+		<br/>
+		<details>
+		  <summary>Show SQL</summary>
+		  <textarea readonly rows="10" style="width:100%; resize:vertical;">{{ compare_sql }}
+		  </textarea>
+		</details>
+		
+        {{ comparison_result.to_html(index=False) | safe }}
+		<br/>
+		<button id="submitCheckRowsDetails">View Details</button>
+		<br/>
+		<a href="#ComparisonResults" style="float: right;" >Back to Comparison Results</a>
+    {% endif %}
+	<br/>
+	<br/>
+    {% if checkdetails_result is not none %}
+	
+		<h2 id="DetailResults">Details Result</h2>
+        <details>
+		  <summary>Show Filtered Conditions</summary>
+		  <textarea readonly rows="5" style="width:100%; resize:vertical;">{{ check_details_where_clause }}
+		  </textarea>
+		</details>
+		<details>
+		  <summary>Show SQL</summary>
+		  <textarea readonly rows="10" style="width:100%; resize:vertical;">{{ checkdetails_sql }}
+		  </textarea>
+		</details>
+        {{ checkdetails_result.to_html(index=False) | safe }}
+		<br/>
+		<a href="#DetailResults" style="float: right;">Back to Detail Results Section</a>
+		<br/>
+		<br/>
+		<a href="#TopTitle" style="float: right;" >Back to Top</a>
+    {% endif %}
+
+<!-- Hidden Form (Sent to Server) -->
+<form id="final_form" method="POST" action="/">
+</form>
+
+
+<script>
+
+$(document).ready(function () {
+
+  const selected_row_color=getComputedStyle(document.documentElement).getPropertyValue('--selected-row-color').trim();
+
+  //for datatables.js framework, default configuration
+  const table = $('.dataframe').DataTable({
+			dom: '<"top"lfi>rt<"bottom"p><"clear">',
+			order: [],
+            select: {
+                style: 'multi' // Enable multiple row selection
+            },
+            paging: false
+        });
+
+  //for datatables.js framework, Enable row selection
+  $('.dataframe tbody').on('click', 'tr', function () {
+    $(this).toggleClass('selected');
+  });
+
+  //Handling second form submit for View Details Results, with 1st level form data together
+  $('#submitCheckRowsDetails').on('click', function () {
+    const selectedData = [];
+    table.rows('.selected').every(function () {
+      selectedData.push(this.data());
+    });
+
+    if (selectedData.length === 0) {
+      alert("Please select at least one row.");
+      return;
+    }
+
+	const basic_form = document.getElementById('basic_form');
+	const final_form = document.getElementById('final_form');
+	// Clear previous hidden inputs
+	final_form.innerHTML = '';
+
+	// Copy data from basic_form to final_form
+	Array.from(basic_form.elements).forEach(el => {
+	if (el.name && !el.disabled) {
+	  const hiddenInput = document.createElement('input');
+	  hiddenInput.type = 'hidden';
+	  hiddenInput.name = el.name;
+	  hiddenInput.value = el.value;
+	  final_form.appendChild(hiddenInput);
+	}
+	});
+	
+	selectedData.forEach(row => {
+		const input = document.createElement("input");
+		input.type = "hidden";
+		input.name = "selectedrows";
+		input.value = row;
+		
+		final_form.appendChild(input);
+	});
+
+	final_form.submit();
+  
+  });
+});
+
+document.addEventListener("DOMContentLoaded", function () {
+	
+	const snapshot1_background_color=getComputedStyle(document.documentElement).getPropertyValue('--snapshot1-background-color').trim();
+	const snapshot2_background_color=getComputedStyle(document.documentElement).getPropertyValue('--snapshot2-background-color').trim();
+	const highlight_diff_color=getComputedStyle(document.documentElement).getPropertyValue('--highlight-diff-font-color').trim();
+
+	
+
+	const tables = document.getElementsByTagName("table"); 
+	
+	//Highlight all column values with differences in Red
+	//All Tables Begin
+	for(let j=0; j<tables.length; j++){
+		const theTable = tables[j]; 
+		const headerCells = theTable.tHead.rows[0].cells;
+		const colNameToIndex = {};
+		for (let i = 0; i < headerCells.length; i++) {
+
+			const name = headerCells[i].textContent.trim();
+
+			colNameToIndex[name] = i;
+
+		}
+		// Go through each _diff column
+		Object.keys(colNameToIndex).forEach(col => {
+
+			if (col.endsWith("_DIFF")) {
+			  const baseCol = col.replace(/_DIFF$/, '');
+			  const diffIdx = colNameToIndex[col];
+			  const baseIdx = colNameToIndex[baseCol];
+			  const baseIdx1 = colNameToIndex[baseCol+"_1"];
+			  const baseIdx2 = colNameToIndex[baseCol+"_2"];
+
+			  if (baseIdx !== undefined || baseIdx1 !== undefined || baseIdx2 !== undefined   ) {
+				for (let r = 0; r < theTable.tBodies[0].rows.length; r++) {
+					
+				  const row = theTable.tBodies[0].rows[r];
+				  const diffVal = parseFloat(row.cells[diffIdx].textContent);
+	
+				  if (!isNaN(diffVal) && diffVal !== 0) {
+					row.cells[diffIdx].style.color = highlight_diff_color; 
+					
+					if (baseIdx !== undefined ) {
+
+						row.cells[baseIdx].style.color = highlight_diff_color; 
+					}
+					if (baseIdx1 !== undefined ) {
+
+						row.cells[baseIdx1].style.color = highlight_diff_color; 
+					}
+					if (baseIdx2 !== undefined ) {
+
+						row.cells[baseIdx2].style.color = highlight_diff_color; 
+					}
+				  }
+				}
+			  }
+			}
+		} );
+	}
+	//All Tables End
+
+	//Highlight snapshot1 and snapshot2 metrics columns
+	//Comparison Table Begin
+	const comparisonTableColNameToIndex = {};
+	const theTable = document.getElementsByTagName("table")[0]; 
+	const headerCells = theTable.tHead.rows[0].cells;
+	for (let i = 0; i < headerCells.length; i++) {
+		const name = headerCells[i].textContent.trim();
+		comparisonTableColNameToIndex[name] = i;
+	}
+	// Go through each column
+	Object.keys(comparisonTableColNameToIndex).forEach(col => {
+		console.log(col);
+		for (let r = 0; r < theTable.tBodies[0].rows.length; r++) {
+			const row = theTable.tBodies[0].rows[r];
+			if (col.endsWith("_1")) {
+			  const snapshot1_Idx = comparisonTableColNameToIndex[col];
+				row.cells[snapshot1_Idx].style.backgroundColor = snapshot1_background_color;
+			}
+			if (col.endsWith("_2")) {
+			  const snapshot2_Idx = comparisonTableColNameToIndex[col];
+				row.cells[snapshot2_Idx].style.backgroundColor = snapshot2_background_color;
+			}
+		}
+
+	});
+  //Comparison Table End
+
+   //Highlight snapshot1 and snapshot2 rows	
+  //Check Details Table Begin
+  const checkDetailsTable = document.getElementsByTagName("table")[1]; 
+ 
+  const chkDetailsTabHeaderCells = checkDetailsTable.tHead.rows[0].cells;
+  let indicatorIndex = -1;
+
+	for (let i = 0; i < chkDetailsTabHeaderCells.length; i++) {
+		if (chkDetailsTabHeaderCells[i].textContent.trim() === "TABLE_NO") {
+			chkDetailsTabHeaderCells[i].classList.add("hidden");
+		  indicatorIndex = i;
+		  break;
+		}
+	}
+
+  if (indicatorIndex >= 0) {
+    const rows = checkDetailsTable.tBodies[0].rows;
+    for (let i = 0; i < rows.length; i++) {
+      const indicator = rows[i].cells[indicatorIndex].textContent.trim().toLowerCase();
+      rows[i].cells[indicatorIndex].classList.add("hidden");
+	  if (indicator === "1") {
+        rows[i].style.backgroundColor = snapshot1_background_color;
+      } else if (indicator === "2") {
+        rows[i].style.backgroundColor = snapshot2_background_color;
+      } 
+    }
+  }	
+  //Check Details Table End	
+	
+
+  
+  
+  
+});
+</script>
+
+</body>
+</html>
